@@ -323,9 +323,32 @@ def pyline(iterable,
     if numpy:
         import numpy # numpy is big, delay import
         d = data = numpy.array([map(float, splitfunc(line)) for line in iterable])
-        result = eval(codeobj, global_ctxt, locals())  # ...
-        for i, row in enumerate(result):
-            yield PylineResult(n=i, result=list(row))  # , uri=uri, meta=meta)
+
+
+        # Questionable do what I mean coding:
+        #   some functions don't work well
+        #   on 2-d arrays (e.g diff)
+        if all(len(row) == 1 for row in data):
+            d = data = numpy.array([row[0] for row in data])
+            local_context = dict(locals(), **vars(numpy))
+            result = eval(codeobj, global_ctxt, local_context)  # ...
+            for i, item in enumerate(result):
+                yield PylineResult(n=i, result=[item])  # , uri=uri, meta=meta)
+        else:
+            local_context = dict(locals(), **vars(numpy))
+            result = eval(codeobj, global_ctxt, local_context)
+
+            if isinstance(result, float):
+                # support things like sum(d**2)
+                yield PylineResult(n=0, result=[result])
+            else:
+                for i, item in enumerate(result):
+                    if isinstance(item, float):
+                        # support for things like `diff` (above)
+                        yield PylineResult(n=i, result=[item])
+                    else:
+                        # general case
+                        yield PylineResult(n=i, result=list(item))
     else:
         for i, obj in enumerate(iterable):
             l = line = o = obj
