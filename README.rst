@@ -112,6 +112,14 @@ Map Functions:
                  for _p in [p.abspath()]][0]' \
                 -O json
 
+    * Numpy vectorized mapping:
+      .. code:: bash
+        seq 100 | pyline --numpy 'data**2'
+        seq 100 | pyline --numpy 'sum(d**2)'
+        seq 100 | pyline --numpy 'diff(d)'
+        seq 100 | pyline --numpy 'zip(d[1:], d[-1])' # lag plot
+
+
 Partition Function:
     None
 
