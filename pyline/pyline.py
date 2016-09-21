@@ -214,6 +214,7 @@ def pyline(iterable,
            idelim=None,
            idelim_split_max=-1,
            odelim="\t",
+           numpy=False,
            **kwargs):
     """
     Process an iterable of lines
@@ -318,32 +319,40 @@ def pyline(iterable,
                 return obj
 
     global_ctxt = globals()
-    for i, obj in enumerate(iterable):
-        l = line = o = obj
-        w = words = [_w for _w in splitfunc(line)]
-        rgx = _rgx and _rgx.match(line) or None
 
-        p = path = None
-        if path_tools_pathpy or path_tools_pathlib:
+    if numpy:
+        import numpy # numpy is big, delay import
+        d = data = numpy.array([map(float, splitfunc(line)) for line in iterable])
+        result = eval(codeobj, global_ctxt, locals())  # ...
+        for i, row in enumerate(result):
+            yield PylineResult(n=i, result=list(row))  # , uri=uri, meta=meta)
+    else:
+        for i, obj in enumerate(iterable):
+            l = line = o = obj
+            w = words = [_w for _w in splitfunc(line)]
+            rgx = _rgx and _rgx.match(line) or None
+
+            p = path = None
+            if path_tools_pathpy or path_tools_pathlib:
+                try:
+                    p = path = Path(line) or None
+                except Exception as e:
+                    log.exception(e)
+                    pass
             try:
-                p = path = Path(line) or None
+                if codeobj:
+                    # Note: eval
+                    result = eval(codeobj, global_ctxt, locals())  # ...
+                elif codefunc:
+                    ctxt = global_ctxt.copy()
+                    ctxt.update(locals())
+                    result = codefunc(ctxt)
             except Exception as e:
+                e.cmd = cmd
+                log.exception(repr(cmd))
                 log.exception(e)
-                pass
-        try:
-            if codeobj:
-                # Note: eval
-                result = eval(codeobj, global_ctxt, locals())  # ...
-            elif codefunc:
-                ctxt = global_ctxt.copy()
-                ctxt.update(locals())
-                result = codefunc(ctxt)
-        except Exception as e:
-            e.cmd = cmd
-            log.exception(repr(cmd))
-            log.exception(e)
-            raise
-        yield PylineResult(n=i, result=result)  # , uri=uri, meta=meta)
+                raise
+            yield PylineResult(n=i, result=result)  # , uri=uri, meta=meta)
 
 
 class OrderedDict_(collections.OrderedDict):
@@ -1015,6 +1024,11 @@ def get_option_parser():
                    dest='number_lines',
                    action='store_true',
                    help='Print line numbers of matches')
+
+    prs.add_option('-N', '--numpy',
+                   dest='numpy',
+                   action='store_true',
+                   help='Operate on a numpy array of all data (data)')
 
     prs.add_option('-m', '--modules',
                    dest='modules',

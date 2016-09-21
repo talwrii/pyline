@@ -70,6 +70,13 @@ TEST_OUTPUT_A0_SORT_DESC_2 = '\n'.join(
     l for l in TEST_OUTPUT_A0_SORT_ASC_2.splitlines()[::-1]
 )
 
+TEST_INPUT_FLOATS = """1 2
+3 4
+5 6
+"""
+
+TEST_OUTPUT_FLOATS_SQUARE = [[1.0, 4.0], [9.0, 16.0], [25.0, 36.0]]
+
 _IO = collections.namedtuple('IO', ['args', 'kwargs', 'expectedoutput'])
 
 
@@ -310,6 +317,12 @@ class TestPyline(
         io = IO(TEST_INPUT_A0,
                 {"cmd": "words", "sort_desc": "2"},  # words[2]
                 splitwords(TEST_OUTPUT_A0_SORT_DESC_2))
+        self.assertTestIO(io)
+
+    def test_pyline_numpy(self):
+        io = IO(TEST_INPUT_FLOATS,
+                {"cmd": "data**2", "sort_asc": "0", "numpy":True},
+                TEST_OUTPUT_FLOATS_SQUARE)
         self.assertTestIO(io)
 
     # def test_15_pyline_sort__6(self):
